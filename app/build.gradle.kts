@@ -1,15 +1,13 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "dev.openhub.app"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    // Sintaxis estándar compatible con la rama Gradle 8.X
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "dev.openhub.app"
@@ -23,9 +21,12 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            // Se limpian las funciones experimentales 'optimization' e 'enable' que causaban error
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -34,6 +35,9 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    kotlinOptions {
+        jvmTarget = "11"
     }
 }
 

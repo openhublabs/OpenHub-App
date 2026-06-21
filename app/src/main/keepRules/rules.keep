@@ -1,4 +1,4 @@
-# Add project specific R8 rules here.
+    # Add project specific R8 rules here.
 # AGP will combine all keep rule files in src/main/keepRules to pass to R8
 #
 # For more details, see

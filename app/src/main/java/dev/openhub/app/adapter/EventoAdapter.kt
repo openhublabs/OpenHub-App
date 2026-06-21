@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import dev.openhub.app.R
 import dev.openhub.app.databinding.ItemEventoBinding
 import dev.openhub.app.model.Evento
@@ -31,7 +32,15 @@ class EventoAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun vincular(evento: Evento) {
-            binding.imagenEvento.setImageResource(evento.imagenRes)
+            if (evento.imagenUrl.isNotEmpty()) {
+                Glide.with(binding.imagenEvento.context)
+                    .load(evento.imagenUrl)
+                    .placeholder(R.drawable.evento_placeholder_1)
+                    .centerCrop()
+                    .into(binding.imagenEvento)
+            } else {
+                binding.imagenEvento.setImageResource(R.drawable.evento_placeholder_1)
+            }
 
             binding.etiquetaCategoria.text = evento.categoria.uppercase()
 

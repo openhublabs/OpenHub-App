@@ -11,6 +11,7 @@ data class Evento(
     val horaFin: String = "",
     val organizador: String = "",
     val imagenUrl: String = "",
+    val url: String = "",
     val source: String = "",
     val clips: Int = 0,
     val tiempoTexto: String = ""

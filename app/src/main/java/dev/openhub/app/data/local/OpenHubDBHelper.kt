@@ -12,7 +12,7 @@ class OpenHubDBHelper(context: Context) :
 
     companion object {
         const val DB_NAME = "openhub.db"
-        const val DB_VERSION = 1
+        const val DB_VERSION = 2
         const val TABLE_EVENTOS = "eventos"
 
         const val COL_ID = "id"
@@ -25,6 +25,7 @@ class OpenHubDBHelper(context: Context) :
         const val COL_HORA_FIN = "horaFin"
         const val COL_ORGANIZADOR = "organizador"
         const val COL_IMAGEN_URL = "imagenUrl"
+        const val COL_URL = "url"
         const val COL_SOURCE = "source"
         const val COL_CLIPS = "clips"
         const val COL_TIEMPO_TEXTO = "tiempoTexto"
@@ -43,6 +44,7 @@ class OpenHubDBHelper(context: Context) :
                 $COL_HORA_FIN TEXT DEFAULT '',
                 $COL_ORGANIZADOR TEXT DEFAULT '',
                 $COL_IMAGEN_URL TEXT DEFAULT '',
+                $COL_URL TEXT DEFAULT '',
                 $COL_SOURCE TEXT DEFAULT '',
                 $COL_CLIPS INTEGER DEFAULT 0,
                 $COL_TIEMPO_TEXTO TEXT DEFAULT ''
@@ -68,6 +70,7 @@ class OpenHubDBHelper(context: Context) :
             put(COL_HORA_FIN, evento.horaFin)
             put(COL_ORGANIZADOR, evento.organizador)
             put(COL_IMAGEN_URL, evento.imagenUrl)
+            put(COL_URL, evento.url)
             put(COL_SOURCE, evento.source)
             put(COL_CLIPS, evento.clips)
             put(COL_TIEMPO_TEXTO, evento.tiempoTexto)
@@ -154,6 +157,7 @@ class OpenHubDBHelper(context: Context) :
                         horaFin = c.getString(c.getColumnIndexOrThrow(COL_HORA_FIN)),
                         organizador = c.getString(c.getColumnIndexOrThrow(COL_ORGANIZADOR)),
                         imagenUrl = c.getString(c.getColumnIndexOrThrow(COL_IMAGEN_URL)),
+                        url = c.getString(c.getColumnIndexOrThrow(COL_URL)),
                         source = c.getString(c.getColumnIndexOrThrow(COL_SOURCE)),
                         clips = c.getInt(c.getColumnIndexOrThrow(COL_CLIPS)),
                         tiempoTexto = c.getString(c.getColumnIndexOrThrow(COL_TIEMPO_TEXTO))

@@ -1,6 +1,7 @@
 package dev.openhub.app.ui
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -35,8 +36,10 @@ class EventoViewModel(application: Application) : AndroidViewModel(application) 
                 val eventos = withContext(Dispatchers.IO) {
                     repository.obtenerEventos()
                 }
+                Log.d("EventoViewModel", "Loaded ${eventos.size} events")
                 _eventos.value = eventos
             } catch (e: Exception) {
+                Log.e("EventoViewModel", "Error loading events: ${e.message}", e)
                 val locales = withContext(Dispatchers.IO) {
                     repository.obtenerDeSQLite()
                 }

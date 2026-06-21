@@ -11,5 +11,6 @@ class OpenHubApp : Application() {
     override fun onCreate() {
         super.onCreate()
         eventRepository = EventRepository.getInstance(this)
+        eventRepository.seedIfEmpty()
     }
 }

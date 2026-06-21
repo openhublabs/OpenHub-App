@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.bumptech.glide.Glide
 import dev.openhub.app.R
 import dev.openhub.app.databinding.FragmentDetalleEventoBinding
 
@@ -36,7 +37,15 @@ class DetalleEventoFragment : Fragment() {
 
         viewModel.eventoSeleccionado.observe(viewLifecycleOwner) { evento ->
             if (evento != null) {
-                binding.imagenDetalle.setImageResource(evento.imagenRes)
+                if (evento.imagenUrl.isNotEmpty()) {
+                    Glide.with(binding.imagenDetalle.context)
+                        .load(evento.imagenUrl)
+                        .placeholder(R.drawable.evento_placeholder_1)
+                        .centerCrop()
+                        .into(binding.imagenDetalle)
+                } else {
+                    binding.imagenDetalle.setImageResource(R.drawable.evento_placeholder_1)
+                }
                 
                 binding.etiquetaCategoriaDetalle.text = evento.categoria.uppercase()
                 val colorChip = when (evento.categoria.lowercase()) {

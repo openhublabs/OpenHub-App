@@ -5,9 +5,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import dev.openhub.app.R
 import dev.openhub.app.databinding.ItemEventoBinding
 import dev.openhub.app.model.Evento
+import dev.openhub.app.util.EventoUtils
 
 class EventoAdapter(
     private val alHacerClic: (Evento) -> Unit
@@ -31,37 +33,35 @@ class EventoAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun vincular(evento: Evento) {
-            binding.imagenEvento.setImageResource(evento.imagenRes)
+            if (evento.imagenUrl.isNotEmpty()) {
+                Glide.with(binding.imagenEvento.context)
+                    .load(evento.imagenUrl)
+                    .placeholder(R.drawable.evento_placeholder_1)
+                    .centerCrop()
+                    .into(binding.imagenEvento)
+            } else {
+                binding.imagenEvento.setImageResource(R.drawable.evento_placeholder_1)
+            }
 
             binding.etiquetaCategoria.text = evento.categoria.uppercase()
-
-            val colorChip = when (evento.categoria.lowercase()) {
-                "hackathon" -> R.color.color_chip_hackathon
-                "conferencia" -> R.color.color_chip_conferencia
-                "taller" -> R.color.color_chip_taller
-                else -> R.color.color_etiqueta_fondo
-            }
             binding.etiquetaCategoria.setBackgroundResource(R.drawable.fondo_etiqueta)
-            binding.etiquetaCategoria.backgroundTintList = 
-                androidx.core.content.ContextCompat.getColorStateList(binding.root.context, colorChip)
+            binding.etiquetaCategoria.backgroundTintList =
+                androidx.core.content.ContextCompat.getColorStateList(
+                    binding.root.context,
+                    EventoUtils.colorChipParaCategoria(evento.categoria)
+                )
 
             val tiempoStr = "${evento.tiempoTexto} ago \u00B7 ${evento.clips} artículos".uppercase()
             binding.etiquetaTiempo.text = "\u26A1 $tiempoStr"
 
-            binding.tituloEvento.text = capitalizarPalabras(evento.titulo)
-            binding.descripcionEvento.text = capitalizarPrimeraLetra(evento.descripcion)
-            
-            val ubicacionCap = evento.ubicacion.split(",").joinToString(", ") { capitalizarPalabras(it.trim()) }
-            binding.textoUbicacion.text = "\uD83D\uDCCD $ubicacionCap"
-            
-            val fechaCap = capitalizarPalabras(evento.fecha)
-            binding.textoFecha.text = "\uD83D\uDCC5 $fechaCap"
-            
+            binding.tituloEvento.text = EventoUtils.capitalizarPalabras(evento.titulo)
+            binding.descripcionEvento.text = EventoUtils.capitalizarPrimeraLetra(evento.descripcion)
+
+            binding.textoUbicacion.text = "\uD83D\uDCCD ${EventoUtils.capitalizarUbicacion(evento.ubicacion)}"
+            binding.textoFecha.text = "\uD83D\uDCC5 ${EventoUtils.capitalizarPalabras(evento.fecha)}"
             binding.textoClips.text = "\uD83C\uDF99 ${evento.clips} Clips"
 
-            binding.tarjetaEvento.setOnClickListener {
-                alHacerClic(evento)
-            }
+            binding.tarjetaEvento.setOnClickListener { alHacerClic(evento) }
         }
     }
 
@@ -71,15 +71,5 @@ class EventoAdapter(
 
         override fun areContentsTheSame(oldItem: Evento, newItem: Evento): Boolean =
             oldItem == newItem
-    }
-
-    private fun capitalizarPalabras(texto: String): String {
-        return texto.split(" ").joinToString(" ") { palabra ->
-            palabra.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-        }
-    }
-
-    private fun capitalizarPrimeraLetra(texto: String): String {
-        return texto.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 }

@@ -1,20 +1,25 @@
 package dev.openhub.app.ui
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.bumptech.glide.Glide
 import dev.openhub.app.R
 import dev.openhub.app.databinding.FragmentDetalleEventoBinding
+import dev.openhub.app.util.EventoUtils
 
 class DetalleEventoFragment : Fragment() {
 
     private var _binding: FragmentDetalleEventoBinding? = null
     private val binding get() = _binding!!
-    
+
     private val viewModel: EventoViewModel by activityViewModels()
 
     override fun onCreateView(
@@ -28,7 +33,7 @@ class DetalleEventoFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         binding.toolbarDetalle.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
         binding.toolbarDetalle.setNavigationOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
@@ -36,36 +41,35 @@ class DetalleEventoFragment : Fragment() {
 
         viewModel.eventoSeleccionado.observe(viewLifecycleOwner) { evento ->
             if (evento != null) {
-                binding.imagenDetalle.setImageResource(evento.imagenRes)
-                
-                binding.etiquetaCategoriaDetalle.text = evento.categoria.uppercase()
-                val colorChip = when (evento.categoria.lowercase()) {
-                    "hackathon" -> R.color.color_chip_hackathon
-                    "conferencia" -> R.color.color_chip_conferencia
-                    "taller" -> R.color.color_chip_taller
-                    else -> R.color.color_etiqueta_fondo
+                if (evento.imagenUrl.isNotEmpty()) {
+                    Glide.with(binding.imagenDetalle.context)
+                        .load(evento.imagenUrl)
+                        .placeholder(R.drawable.evento_placeholder_1)
+                        .centerCrop()
+                        .into(binding.imagenDetalle)
+                } else {
+                    binding.imagenDetalle.setImageResource(R.drawable.evento_placeholder_1)
                 }
-                binding.etiquetaCategoriaDetalle.backgroundTintList = 
-                    androidx.core.content.ContextCompat.getColorStateList(requireContext(), colorChip)
+
+                binding.etiquetaCategoriaDetalle.text = evento.categoria.uppercase()
+                binding.etiquetaCategoriaDetalle.backgroundTintList =
+                    ContextCompat.getColorStateList(requireContext(), EventoUtils.colorChipParaCategoria(evento.categoria))
 
                 binding.textoTiempoDetalle.text = "Hace ${evento.tiempoTexto}"
-                
-                val tituloCap = evento.titulo.split(" ").joinToString(" ") { it.replaceFirstChar { c -> if (c.isLowerCase()) c.titlecase() else c.toString() } }
-                binding.tituloDetalle.text = tituloCap
-                
-                val ubicacionCap = evento.ubicacion.split(",").joinToString(", ") { it.trim().replaceFirstChar { c -> if (c.isLowerCase()) c.titlecase() else c.toString() } }
-                binding.textoUbicacionDetalle.text = ubicacionCap
-                
-                val fechaCap = evento.fecha.split(" ").joinToString(" ") { it.replaceFirstChar { c -> if (c.isLowerCase()) c.titlecase() else c.toString() } }
-                binding.textoFechaDetalle.text = fechaCap
-                
-                val descCap = evento.descripcion.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-                binding.descripcionDetalle.text = descCap
+                binding.tituloDetalle.text = EventoUtils.capitalizarPalabras(evento.titulo)
+                binding.textoUbicacionDetalle.text = EventoUtils.capitalizarUbicacion(evento.ubicacion)
+                binding.textoFechaDetalle.text = EventoUtils.capitalizarPalabras(evento.fecha)
+                binding.descripcionDetalle.text = EventoUtils.capitalizarPrimeraLetra(evento.descripcion)
             }
         }
-        
+
         binding.botonInscribirse.setOnClickListener {
-            Toast.makeText(requireContext(), "Redirigiendo a la inscripcion...", Toast.LENGTH_SHORT).show()
+            val url = viewModel.eventoSeleccionado.value?.url.orEmpty()
+            if (url.isNotEmpty()) {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } else {
+                Toast.makeText(requireContext(), "No hay enlace disponible", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

@@ -12,5 +12,7 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy ${{ github.ref_name }} (${{ github.sha[0:7] }})
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+      - name: Deploy ${{ github.ref_name }} (${{ env.SHORT_SHA }})
         run: railway up --service=${{ vars.RAILWAY_SERVICE_ID }} --detach

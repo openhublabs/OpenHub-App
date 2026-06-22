@@ -7,11 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: railwayapp/cli-action@v3
-        with:
-          projectToken: ${{ secrets.RAILWAY_TOKEN }}
+      - run: railway up --service=${{ vars.RAILWAY_SERVICE_ID }} --detach

@@ -15,13 +15,6 @@ from config import (
 )
 
 
-SCRAPE_PROMPT = (
-    "Extract all visible event details including title, full description (if visible), "
-    "date, time, location, organizer, image URL, event URL, whether the event is online, "
-    "and any visible tags or categories on the page."
-)
-
-
 def log(msg: str):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
 
@@ -36,6 +29,94 @@ def infer_category(tags: list[str]) -> str:
         key = tag.lower().strip()
         if key in TAG_TO_CATEGORY:
             return TAG_TO_CATEGORY[key]
+    return ""
+
+
+TITLE_CATEGORY_KEYWORDS: dict[str, str] = {
+    "hackathon": "hackathon",
+    "hackaton": "hackathon",
+    "conference": "conferencia",
+    "conferencia": "conferencia",
+    "summit": "conferencia",
+    "symposium": "conferencia",
+    "workshop": "taller",
+    "taller": "taller",
+    "hands-on": "taller",
+    "tutorial": "taller",
+    "meetup": "meetup",
+    "webinar": "webinar",
+    "networking": "networking",
+    "artificial intelligence": "inteligencia artificial",
+    "machine learning": "inteligencia artificial",
+    "deep learning": "inteligencia artificial",
+    "llm": "inteligencia artificial",
+    "generative ai": "inteligencia artificial",
+    "genai": "inteligencia artificial",
+    "gpt": "inteligencia artificial",
+    "kubernetes": "devops",
+    "k8s": "devops",
+    "devops": "devops",
+    "docker": "devops",
+    "terraform": "devops",
+    "cloud": "devops",
+    "ci/cd": "devops",
+    "ciberseguridad": "seguridad",
+    "cybersecurity": "seguridad",
+    "security": "seguridad",
+    "hacking": "seguridad",
+    "ctf": "seguridad",
+    "pentest": "seguridad",
+    "bug bounty": "seguridad",
+    "python": "backend",
+    "node.js": "backend",
+    "nodejs": "backend",
+    "rust": "backend",
+    "golang": "backend",
+    "java": "backend",
+    "backend": "backend",
+    "graphql": "backend",
+    "javascript": "frontend",
+    "typescript": "frontend",
+    "react": "frontend",
+    "angular": "frontend",
+    "vue": "frontend",
+    "frontend": "frontend",
+    "android": "mobile",
+    "ios": "mobile",
+    "flutter": "mobile",
+    "react native": "mobile",
+    "kotlin": "mobile",
+    "swift": "mobile",
+    "startup": "startup",
+    "emprendimiento": "startup",
+    "entrepreneur": "startup",
+    "pitch": "startup",
+    "founders": "startup",
+    "venture capital": "inversion",
+    "investors": "inversion",
+    "funding": "inversion",
+    "design": "design",
+    "ux": "design",
+    "ui": "design",
+    "figma": "design",
+    "marketing": "marketing",
+    "growth": "marketing",
+    "seo": "marketing",
+}
+
+
+def infer_category_from_title(title: str) -> str:
+    title_lower = title.lower()
+    words = set(title_lower.split())
+    for keyword, category in TITLE_CATEGORY_KEYWORDS.items():
+        if " " in keyword:
+            if keyword in title_lower:
+                return category
+        else:
+            if keyword in words:
+                return category
+    if re.search(r'\bai\b', title_lower):
+        return "inteligencia artificial"
     return ""
 
 
@@ -69,7 +150,7 @@ def parse_date(date_str: str) -> str:
     return f"{dt.day} {meses[dt.month - 1]} {dt.year}"
 
 
-def normalize_event(raw: dict, source: str) -> dict | None:
+def normalize_event(raw: dict, source: str, url_tags: list[str] | None = None) -> dict | None:
     title = (raw.get("title") or "").strip()
     if not title:
         return None
@@ -77,17 +158,21 @@ def normalize_event(raw: dict, source: str) -> dict | None:
     date_str = raw.get("date", "")
     event_id = generate_event_id(title, date_str)
     tags = raw.get("tags", [])
+    url_tags = url_tags or []
     is_online = raw.get("is_online", False)
     event_type = (raw.get("type") or "").lower()
     if event_type in ("online", "virtual"):
         is_online = True
+
+    category = infer_category(tags) or infer_category_from_title(title) or infer_category(url_tags)
+    final_tags = tags if tags else url_tags
 
     return {
         "id": event_id,
         "source": source,
         "titulo": title,
         "descripcion": raw.get("description", ""),
-        "categoria": infer_category(tags),
+        "categoria": category,
         "ubicacion": raw.get("location", ""),
         "fecha": parse_date(date_str),
         "horaInicio": raw.get("time", ""),
@@ -98,7 +183,7 @@ def normalize_event(raw: dict, source: str) -> dict | None:
         "isOnline": is_online,
         "clips": 0,
         "tiempoTexto": "",
-        "tags": tags,
+        "tags": final_tags,
     }
 
 
@@ -153,53 +238,38 @@ def _firecrawl_scrape_urls(urls: list[str], source: str) -> list[dict]:
 
     firecrawl = Firecrawl(api_key=FIRECRAWL_API_KEY)
 
-    log(f"[{source}] Sending {len(urls)} URLs to Firecrawl (batch):")
-    for url in urls:
-        log(f"  - {url}")
-
-    try:
-        job = firecrawl.batch_scrape(
-            urls,
-            formats=[{
-                "type": "json",
-                "prompt": SCRAPE_PROMPT,
-                "schema": EVENT_JSON_SCHEMA,
-            }],
-            poll_interval=2,
-            wait_timeout=300,
-        )
-    except Exception as e:
-        log(f"[{source}] Batch scrape failed: {e}")
-        return []
-
     all_events = []
-    if job and job.data:
-        for doc in job.data:
-            json_data = doc.json if doc and hasattr(doc, "json") else None
-            if not json_data or "events" not in json_data:
-                continue
+    for url in urls:
+        log(f"  [{source}] Scraping {url}")
+        try:
+            result = firecrawl.scrape(
+                url,
+                formats=[{"type": "json", "schema": EVENT_JSON_SCHEMA}],
+            )
+        except Exception as e:
+            log(f"  [{source}] Error: {e}")
+            continue
 
-            source_url = ""
-            if doc and hasattr(doc, "metadata") and doc.metadata:
-                source_url = doc.metadata.get("sourceURL", "") or ""
+        json_data = result.json if result and hasattr(result, "json") else None
+        if not json_data or "events" not in json_data:
+            log(f"  [{source}] No events found")
+            continue
 
-            url_tags = infer_tags_from_url(source_url) if source_url else []
-            event_count = len(json_data["events"])
+        source_url = url
+        if result and hasattr(result, "metadata") and result.metadata:
+            source_url = getattr(result.metadata, "source_url", "") or url
 
-            for event in json_data["events"]:
-                existing_tags = event.get("tags") or []
-                if url_tags and not existing_tags:
-                    event["tags"] = url_tags
-                normalized = normalize_event(event, source)
-                if normalized:
-                    all_events.append(normalized)
+        url_tags = infer_tags_from_url(source_url)
+        event_count = len(json_data["events"])
 
-            log(f"  [{source}] {source_url} -> {event_count} events")
+        for event in json_data["events"]:
+            normalized = normalize_event(event, source, url_tags=url_tags)
+            if normalized:
+                all_events.append(normalized)
 
-    status = getattr(job, "status", "unknown")
-    completed = getattr(job, "completed", 0)
-    total = getattr(job, "total", len(urls))
-    log(f"[{source}] Done ({status}) — {completed}/{total} URLs, {len(all_events)} events")
+        log(f"  [{source}] {source_url} -> {event_count} events")
+
+    log(f"[{source}] Done — {len(all_events)} events from {len(urls)} URLs")
     return all_events
 
 

@@ -1,4 +1,5 @@
 import hashlib
+import re
 from datetime import datetime
 
 import requests
@@ -8,16 +9,26 @@ from config import (
     EVENTBRITE_URLS,
     EVENT_JSON_SCHEMA,
     FIRECRAWL_API_KEY,
-    LUMA_URLS,
     MEETUP_URLS,
     PERUANOS_API_URL,
     TAG_TO_CATEGORY,
 )
 
 
-def generate_event_id(title: str, date: str, source: str) -> str:
+SCRAPE_PROMPT = (
+    "Extract all visible event details including title, full description (if visible), "
+    "date, time, location, organizer, image URL, event URL, whether the event is online, "
+    "and any visible tags or categories on the page."
+)
+
+
+def log(msg: str):
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
+
+
+def generate_event_id(title: str, date: str) -> str:
     raw = f"{title}|{date}".lower().strip()
-    return f"{source}-{hashlib.md5(raw.encode()).hexdigest()[:16]}"
+    return hashlib.md5(raw.encode()).hexdigest()[:16]
 
 
 def infer_category(tags: list[str]) -> str:
@@ -26,6 +37,19 @@ def infer_category(tags: list[str]) -> str:
         if key in TAG_TO_CATEGORY:
             return TAG_TO_CATEGORY[key]
     return ""
+
+
+def infer_tags_from_url(url: str) -> list[str]:
+    url_lower = url.lower()
+    if "eventbrite.com" in url_lower:
+        match = re.search(r'/d/[^/]+/([^/?]+)', url_lower)
+        if match:
+            return [match.group(1)]
+    if "meetup.com" in url_lower:
+        match = re.search(r'keywords=([^&]+)', url_lower)
+        if match:
+            return [match.group(1)]
+    return []
 
 
 def parse_date(date_str: str) -> str:
@@ -51,7 +75,7 @@ def normalize_event(raw: dict, source: str) -> dict | None:
         return None
 
     date_str = raw.get("date", "")
-    event_id = generate_event_id(title, date_str, source)
+    event_id = generate_event_id(title, date_str)
     tags = raw.get("tags", [])
     is_online = raw.get("is_online", False)
     event_type = (raw.get("type") or "").lower()
@@ -79,13 +103,13 @@ def normalize_event(raw: dict, source: str) -> dict | None:
 
 
 def scrape_peruanos() -> list[dict]:
-    print("[peruanos.dev] Fetching from API...")
+    log("[peruanos.dev] Fetching from API...")
     try:
         response = requests.get(PERUANOS_API_URL, timeout=30)
         response.raise_for_status()
         events = response.json()
     except Exception as e:
-        print(f"[peruanos.dev] Error: {e}")
+        log(f"[peruanos.dev] Error: {e}")
         return []
 
     normalized = []
@@ -114,47 +138,73 @@ def scrape_peruanos() -> list[dict]:
         if normalized_event:
             normalized.append(normalized_event)
 
-    print(f"[peruanos.dev] Got {len(normalized)} events")
+    log(f"[peruanos.dev] Got {len(normalized)} events")
     return normalized
 
 
 def _firecrawl_scrape_urls(urls: list[str], source: str) -> list[dict]:
     if not FIRECRAWL_API_KEY:
-        print(f"[{source}] No FIRECRAWL_API_KEY set, skipping")
+        log(f"[{source}] No FIRECRAWL_API_KEY set, skipping")
+        return []
+
+    if not urls:
+        log(f"[{source}] No URLs configured, skipping")
         return []
 
     firecrawl = Firecrawl(api_key=FIRECRAWL_API_KEY)
-    all_events = []
 
+    log(f"[{source}] Sending {len(urls)} URLs to Firecrawl (batch):")
     for url in urls:
-        print(f"[{source}] Scraping {url}")
-        try:
-            result = firecrawl.scrape(
-                url,
-                formats=[{
-                    "type": "json",
-                    "schema": EVENT_JSON_SCHEMA,
-                }],
-            )
-            json_data = result.json if result else None
-            if json_data and "events" in json_data:
-                for event in json_data["events"]:
-                    normalized = normalize_event(event, source)
-                    if normalized:
-                        all_events.append(normalized)
-        except Exception as e:
-            print(f"[{source}] Error scraping {url}: {e}")
+        log(f"  - {url}")
 
-    print(f"[{source}] Got {len(all_events)} events")
+    try:
+        job = firecrawl.batch_scrape(
+            urls,
+            formats=[{
+                "type": "json",
+                "prompt": SCRAPE_PROMPT,
+                "schema": EVENT_JSON_SCHEMA,
+            }],
+            poll_interval=2,
+            wait_timeout=300,
+        )
+    except Exception as e:
+        log(f"[{source}] Batch scrape failed: {e}")
+        return []
+
+    all_events = []
+    if job and job.data:
+        for doc in job.data:
+            json_data = doc.json if doc and hasattr(doc, "json") else None
+            if not json_data or "events" not in json_data:
+                continue
+
+            source_url = ""
+            if doc and hasattr(doc, "metadata") and doc.metadata:
+                source_url = doc.metadata.get("sourceURL", "") or ""
+
+            url_tags = infer_tags_from_url(source_url) if source_url else []
+            event_count = len(json_data["events"])
+
+            for event in json_data["events"]:
+                existing_tags = event.get("tags") or []
+                if url_tags and not existing_tags:
+                    event["tags"] = url_tags
+                normalized = normalize_event(event, source)
+                if normalized:
+                    all_events.append(normalized)
+
+            log(f"  [{source}] {source_url} -> {event_count} events")
+
+    status = getattr(job, "status", "unknown")
+    completed = getattr(job, "completed", 0)
+    total = getattr(job, "total", len(urls))
+    log(f"[{source}] Done ({status}) — {completed}/{total} URLs, {len(all_events)} events")
     return all_events
 
 
 def scrape_eventbrite() -> list[dict]:
     return _firecrawl_scrape_urls(EVENTBRITE_URLS, "eventbrite")
-
-
-def scrape_luma() -> list[dict]:
-    return _firecrawl_scrape_urls(LUMA_URLS, "luma")
 
 
 def scrape_meetup() -> list[dict]:
@@ -164,6 +214,5 @@ def scrape_meetup() -> list[dict]:
 SCRAPERS = {
     "peruanos.dev": scrape_peruanos,
     "eventbrite": scrape_eventbrite,
-    "luma": scrape_luma,
     "meetup": scrape_meetup,
 }

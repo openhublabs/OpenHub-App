@@ -170,6 +170,8 @@ fun MainScreen(viewModel: EventoViewModel) {
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Splash.route,
+                    // transiciones ultrarapidas (150ms) que destruyen el nodo anterior al instante
+                    // solucionando el bug de pantallas entrelazadas y replicando la inmediatez de ios
                     enterTransition = { 
                         if (initialState.destination.route == Screen.Splash.route) {
                             androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(400))

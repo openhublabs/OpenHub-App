@@ -75,23 +75,28 @@ fun DetailScreen(
     val hazeState = remember { HazeState() }
 
     evento?.let { currentEvento ->
+        // scope especial que permite vincular visualmente esta pantalla con la pantalla anterior
         with(sharedTransitionScope) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
+                // columnda que permite scroll vertical para ver todos los detalles del evento
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
+                    // caja que contiene la imagen de cabecera a 350dp de altura
                     Box(modifier = Modifier.fillMaxWidth().height(350.dp)) {
                         AsyncImage(
                             model = currentEvento.imagenUrl,
                             contentDescription = currentEvento.titulo,
                             modifier = Modifier
                                 .fillMaxSize()
+                                // motor de cristal liquido que difumina el contenido que pasa por detras
                                 .haze(hazeState)
+                                // enlace de elemento compartido para recibir la foto expandida desde la tarjeta
                                 .sharedElement(
                                     state = rememberSharedContentState(key = "image-${currentEvento.id}"),
                                     animatedVisibilityScope = animatedVisibilityScope,
@@ -100,6 +105,7 @@ fun DetailScreen(
                             contentScale = ContentScale.Crop
                         )
                         
+                        // fila superpuesta en la parte superior para el boton de volver atras
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -107,24 +113,10 @@ fun DetailScreen(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // boton con efecto liquid glass para retroceder
                             IconButton(
                                 onClick = { navController.navigateUp() },
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.White.copy(alpha = 0.15f))
-                                    .border(
-                                        width = 1.5.dp,
-                                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.6f),
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.Transparent,
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.White.copy(alpha = 0.4f)
-                                            )
-                                        ),
-                                        shape = CircleShape
-                                    )
+                                modifier = Modifier.liquidGlass(hazeState = hazeState, shape = CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -135,9 +127,11 @@ fun DetailScreen(
                         }
                     }
 
+                    // contenedor inferior tipo tarjeta superpuesta que contiene la informacion
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
+                            // aplicamos cristal liquido fuerte para que el fondo de la foto se difumine si bajas mucho
                             .liquidGlassStrong(hazeState = hazeState, shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
                             .padding(32.dp)
                             .navigationBarsPadding()
@@ -156,6 +150,7 @@ fun DetailScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = (-1).sp
                             ),
+                            // recibe el texto en vuelo desde el feed garantizando la transicion ios26 pura
                             modifier = Modifier.sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "title-${currentEvento.id}"),
                                 animatedVisibilityScope = animatedVisibilityScope,
@@ -182,15 +177,19 @@ fun DetailScreen(
                             style = MaterialTheme.typography.bodyLarge
                         )
                         
+                        // espaciado antes del boton de accion principal
                         Spacer(modifier = Modifier.height(48.dp))
                         
+                        // boton de llamada a la accion gigante en la parte inferior
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(60.dp)
-                                .spatialClickable { /* Register action */ }
+                                // TODO: implementar integracion con el backend para registro de usuario
+                                .spatialClickable { }
                                 .background(Color.White.copy(alpha = 0.95f), CircleShape)
                         ) {
+                            // centrado horizontal y vertical del texto y el icono
                             Row(
                                 modifier = Modifier.align(Alignment.Center),
                                 verticalAlignment = Alignment.CenterVertically

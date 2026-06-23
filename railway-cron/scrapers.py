@@ -15,6 +15,13 @@ from config import (
 )
 
 
+SCRAPE_PROMPT = (
+    "Extract all visible event details including title, full description (if visible), "
+    "date, time, location, organizer, image URL, event URL, whether the event is online, "
+    "and any visible tags or categories on the page."
+)
+
+
 def log(msg: str):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
 
@@ -133,13 +140,6 @@ def scrape_peruanos() -> list[dict]:
 
     log(f"[peruanos.dev] Got {len(normalized)} events")
     return normalized
-
-
-SCRAPE_PROMPT = (
-    "Extract all visible event details including title, full description (if visible), "
-    "date, time, location, organizer, image URL, event URL, whether the event is online, "
-    "and any visible tags or categories on the page."
-)
 
 
 def _firecrawl_scrape_urls(urls: list[str], source: str) -> list[dict]:

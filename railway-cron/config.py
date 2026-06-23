@@ -97,6 +97,7 @@ TAG_TO_CATEGORY = {
     "venture capital": "inversion",
     "vc": "inversion",
     "funding": "inversion",
+    "technology": "conferencia",
 }
 
 EVENT_JSON_SCHEMA = {

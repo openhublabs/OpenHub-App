@@ -78,16 +78,8 @@ fun FeedScreen(
 ) {
     val eventos: List<Evento> by viewModel.eventos.observeAsState(emptyList())
 
-    val userName: String? = null
-
-    val hora = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    val saludo = when {
-        hora < 12 -> "Buenos días"
-        hora < 18 -> "Buenas tardes"
-        else -> "Buenas noches"
-    }
-
-    val headerTitle = if (userName != null) "$saludo,\n$userName" else saludo
+    // titulo dinamico basado en la hora local
+    val headerTitle = obtenerSaludoDiario()
     
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -97,6 +89,8 @@ fun FeedScreen(
         }
     }
 
+    // lazycolumn es la lista optimizada vertical que solo dibuja lo que ves en pantalla
+    // el padding inferior asegura que las tarjetas no se tapen con el menu de navegacion
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()),
         contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + 80.dp) 
@@ -118,7 +112,9 @@ fun FeedScreen(
             }
         }
 
+        // recorremos la lista de eventos de forma optimizada
         itemsIndexed(eventos) { index, evento ->
+            // staggereditem aplica el efecto de cascada sumando el indice al tiempo de retardo
             StaggeredItem(index = 2 + index, hasAnimated = hasAnimated) {
                 EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope)
             }
@@ -132,6 +128,8 @@ fun StaggeredItem(
     hasAnimated: Boolean,
     content: @Composable () -> Unit
 ) {
+    // comprobacion critica para evitar recalculos graficos
+    // si la app ya mostro las animaciones iniciales renderizamos directo para no saturar el scroll
     if (hasAnimated) {
         Box { content() }
     } else {
@@ -228,6 +226,8 @@ fun BuscarScreen(viewModel: EventoViewModel, navController: NavController, share
 
 @Composable
 fun Header(title: String, showLogo: Boolean = false) {
+    // cabecera principal con parametro condicional para inyectar el logo nativo
+    // alineado a la izquierda con el texto a su derecha
     if (showLogo) {
         Row(
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp),
@@ -248,6 +248,7 @@ fun Header(title: String, showLogo: Boolean = false) {
         }
     } else {
         Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp)) {
+            // titulo principal de la vista
             Text(
                 text = title, 
                 style = MaterialTheme.typography.displayLarge,
@@ -259,12 +260,14 @@ fun Header(title: String, showLogo: Boolean = false) {
 
 @Composable
 fun Header(title: String, subtitle: String) {
+    // contenedor apilado verticalmente para cabeceras con subtitulo
     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 40.dp)) {
         Text(
             text = title, 
             style = MaterialTheme.typography.displayLarge,
             color = TextTitle
         )
+        // solo renderizamos subtitulo si hay contenido
         if (subtitle.isNotEmpty()) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -285,19 +288,25 @@ fun EventCard(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    // with inyecta el ambito de transicion compartida para usar sharedbounds
     with(sharedTransitionScope) {
+        // contenedor maestro de la tarjeta
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 12.dp)
+                // click espacial que acciona la transicion fluida a la pantalla de detalles
                 .spatialClickable {
                     viewModel.seleccionarEvento(evento)
                     navController.navigate(Screen.Detalle.route)
                 }
                 .liquidGlass(shape = RoundedCornerShape(32.dp))
         ) {
+            // ordenacion vertical de la imagen arriba y la info abajo
             Column {
                 Box {
+                    // motor coil con efecto de difuminado o crossfade activado a 500ms
+                    // esto asegura que cuando se descargue la foto no salte de golpe sino que aparezca elegantemente
                     AsyncImage(
                         model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
                             .data(evento.imagenUrl)
@@ -339,6 +348,8 @@ fun EventCard(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = (-0.5).sp
                         ),
+                        // enlace de fisica compartida, permite que este texto vuele de manera independiente
+                        // hacia la siguiente pantalla sin escalar la tarjeta entera
                         modifier = Modifier.sharedBounds(
                             sharedContentState = rememberSharedContentState(key = "title-${evento.id}"),
                             animatedVisibilityScope = animatedVisibilityScope,

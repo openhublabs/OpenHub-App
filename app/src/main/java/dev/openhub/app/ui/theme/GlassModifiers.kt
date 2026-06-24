@@ -2,6 +2,7 @@ package dev.openhub.app.ui.theme
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,12 +50,18 @@ val BorderGradientStrong = Brush.verticalGradient(
 fun Modifier.liquidGlass(
     hazeState: HazeState? = null,
     shape: Shape = RoundedCornerShape(percent = 50)
-): Modifier = this
-    .clip(shape)
-    .then(if (hazeState != null) Modifier.hazeChild(state = hazeState, shape = shape, blurRadius = 4.dp) else Modifier)
-    .background(LiquidGlassBackground)
-    .border(1.dp, BorderGradient, shape)
+): Modifier = composed {
+    // efecto de cristal puro: fondo semitransparente oscuro con un borde de degradado de grises
+    // esto le da el volumen al elemento sin recurrir a sombras planas tradicionales
+    this
+        .clip(shape)
+        // si hay soporte de difuminado inyectamos hazechild para difuminar el fondo atras del componente
+        .then(if (hazeState != null) Modifier.hazeChild(state = hazeState, shape = shape, blurRadius = 4.dp) else Modifier)
+        .background(LiquidGlassBackground)
+        .border(1.dp, BorderGradient, shape)
+}
 
+// version fuerte del cristal liquido con un fondo un poco mas opaco y gris para modales y detalles
 @Composable
 fun Modifier.liquidGlassStrong(
     hazeState: HazeState? = null,
@@ -70,13 +77,15 @@ fun Modifier.liquidGlassStrong(
 fun Modifier.spatialClickable(
     onClick: () -> Unit
 ): Modifier = composed {
+    // click animado que imita el rebote de ios (haptic/spatial feedback)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
 
+    // escala animada: si esta presionado se reduce un 5%, si no, regresa al 100%
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(stiffness = 400f, dampingRatio = 0.6f),
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy),
         label = "scale"
     )
 

@@ -26,6 +26,15 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -67,14 +76,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Correo electrónico", color = MaterialTheme.colorScheme.onBackground) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                    ),
+                    colors = textFieldColors,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     singleLine = true
@@ -85,14 +87,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
                     onValueChange = { password = it },
                     label = { Text("Contraseña", color = MaterialTheme.colorScheme.onBackground) },
                     visualTransformation = PasswordVisualTransformation(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                    ),
+                    colors = textFieldColors,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                     singleLine = true

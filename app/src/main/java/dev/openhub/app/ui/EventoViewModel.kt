@@ -54,11 +54,11 @@ class EventoViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun seleccionarEvento(id: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val evento = repository.obtenerPorId(id)
-            withContext(Dispatchers.Main) {
-                _eventoSeleccionado.value = evento
+        viewModelScope.launch {
+            val evento = withContext(Dispatchers.IO) {
+                repository.obtenerPorId(id)
             }
+            _eventoSeleccionado.value = evento
         }
     }
 }

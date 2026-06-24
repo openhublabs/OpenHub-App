@@ -1,4 +1,6 @@
 package dev.openhub.app.data.remote
+
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import dev.openhub.app.model.Evento
 import kotlinx.coroutines.tasks.await
@@ -15,7 +17,7 @@ class FirebaseEventosRepository {
         }
     }
 
-    private fun com.google.firebase.firestore.DocumentSnapshot.toEvento(): Evento? {
+    private fun DocumentSnapshot.toEvento(): Evento? {
         val data = data ?: return null
         return Evento(
             id = id,

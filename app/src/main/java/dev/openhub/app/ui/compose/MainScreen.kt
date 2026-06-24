@@ -2,13 +2,27 @@ package dev.openhub.app.ui.compose
 
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
@@ -17,33 +31,19 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import dev.openhub.app.R
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -59,8 +59,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
+import dev.openhub.app.R
 import dev.openhub.app.ui.EventoViewModel
-import dev.openhub.app.ui.theme.liquidGlass
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector?) {
     object Feed : Screen("feed", "Inicio", Icons.Outlined.Home)
@@ -129,10 +132,12 @@ fun MainScreen(viewModel: EventoViewModel) {
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             bottomBar = {
-                androidx.compose.animation.AnimatedVisibility(
+                AnimatedVisibility(
                     visible = currentRoute != Screen.Detalle.route && currentRoute != Screen.Splash.route,
-                    enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(400, delayMillis = 400)) + androidx.compose.animation.slideInVertically(animationSpec = androidx.compose.animation.core.tween(400, delayMillis = 400), initialOffsetY = { it }),
-                    exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(400)) + androidx.compose.animation.slideOutVertically(animationSpec = androidx.compose.animation.core.tween(400), targetOffsetY = { it })
+                    enter = fadeIn(animationSpec = tween(400, delayMillis = 400)) +
+                            slideInVertically(animationSpec = tween(400, delayMillis = 400), initialOffsetY = { it }),
+                    exit = fadeOut(animationSpec = tween(400)) +
+                           slideOutVertically(animationSpec = tween(400), targetOffsetY = { it })
                 ) {
                     Box(modifier = Modifier.navigationBarsPadding()) {
                         GlassBottomNavigation(navController = navController, currentRoute = currentRoute, hazeState = hazeState)
@@ -170,24 +175,16 @@ fun MainScreen(viewModel: EventoViewModel) {
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Splash.route,
-                    // transiciones ultrarapidas (150ms) que destruyen el nodo anterior al instante
-                    // solucionando el bug de pantallas entrelazadas y replicando la inmediatez de ios
-                    enterTransition = { 
-                        if (initialState.destination.route == Screen.Splash.route) {
-                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(400))
-                        } else {
-                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150))
-                        }
+                    enterTransition = {
+                        val duration = if (initialState.destination.route == Screen.Splash.route) 400 else 150
+                        fadeIn(animationSpec = tween(duration))
                     },
-                    exitTransition = { 
-                        if (targetState.destination.route == Screen.Splash.route) {
-                            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(400))
-                        } else {
-                            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(150))
-                        }
+                    exitTransition = {
+                        val duration = if (targetState.destination.route == Screen.Splash.route) 400 else 150
+                        fadeOut(animationSpec = tween(duration))
                     },
-                    popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) },
-                    popExitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(150)) },
+                    popEnterTransition = { fadeIn(animationSpec = tween(150)) },
+                    popExitTransition = { fadeOut(animationSpec = tween(150)) },
                     modifier = Modifier.fillMaxSize()
                 ) {
                     composable(Screen.Splash.route) {
@@ -229,7 +226,7 @@ fun GlassBottomNavigation(navController: NavController, currentRoute: String?, h
             .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.White.copy(alpha = 0.15f))
             .border(
                 width = 1.5.dp, 
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.White.copy(alpha = 0.6f),
                         Color.White.copy(alpha = 0.1f),

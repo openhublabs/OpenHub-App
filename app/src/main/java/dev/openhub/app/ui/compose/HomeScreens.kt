@@ -1,12 +1,12 @@
 package dev.openhub.app.ui.compose
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,7 +36,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -52,6 +51,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -64,6 +64,7 @@ import dev.openhub.app.ui.theme.TextSubtitle
 import dev.openhub.app.ui.theme.TextTitle
 import dev.openhub.app.ui.theme.liquidGlass
 import dev.openhub.app.ui.theme.spatialClickable
+import dev.openhub.app.util.EventoUtils
 import java.util.Calendar
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -140,13 +141,13 @@ fun StaggeredItem(
             visible = true
         }
         
-        val alpha by androidx.compose.animation.core.animateFloatAsState(
+        val alpha by animateFloatAsState(
             targetValue = if (visible) 1f else 0f,
             animationSpec = tween(500)
         )
-        val translationY by androidx.compose.animation.core.animateFloatAsState(
+        val translationY by animateFloatAsState(
             targetValue = if (visible) 0f else 50f,
-            animationSpec = tween(500, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            animationSpec = tween(500, easing = FastOutSlowInEasing)
         )
         
         Box(modifier = Modifier.graphicsLayer {
@@ -228,11 +229,11 @@ fun BuscarScreen(viewModel: EventoViewModel, navController: NavController, share
 @Composable
 fun Header(title: String, showLogo: Boolean = false) {
     if (showLogo) {
-        androidx.compose.foundation.layout.Row(
+        Row(
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            androidx.compose.foundation.Image(
+            Image(
                 painter = painterResource(id = R.drawable.app_logo),
                 contentDescription = "Logo",
                 modifier = Modifier
@@ -332,7 +333,7 @@ fun EventCard(
 
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = capitalizarPalabras(evento.titulo),
+                        text = EventoUtils.capitalizarPalabras(evento.titulo),
                         color = TextTitle,
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.SemiBold,
@@ -355,11 +356,11 @@ fun EventCard(
                             Icon(Icons.Outlined.Place, contentDescription = null, tint = TextLight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = capitalizarPalabras(evento.ubicacion.split(",").first()), 
+                                text = EventoUtils.capitalizarPalabras(evento.ubicacion.split(",").first()), 
                                 color = TextLight, 
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Spacer(modifier = Modifier.width(16.dp))
@@ -367,7 +368,7 @@ fun EventCard(
                             Icon(Icons.Outlined.DateRange, contentDescription = null, tint = TextLight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = capitalizarPalabras(evento.fecha), 
+                                text = EventoUtils.capitalizarPalabras(evento.fecha), 
                                 color = TextLight, 
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 1
@@ -377,11 +378,5 @@ fun EventCard(
                 }
             }
         }
-    }
-}
-
-private fun capitalizarPalabras(texto: String): String {
-    return texto.split(" ").joinToString(" ") { palabra ->
-        palabra.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 }

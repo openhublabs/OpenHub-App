@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -79,8 +80,10 @@ fun Modifier.spatialClickable(
         label = "scale"
     )
 
-    if (isPressed) {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
     }
 
     this

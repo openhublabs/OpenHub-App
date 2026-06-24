@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -28,8 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,11 +37,10 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,13 +49,10 @@ import coil.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
-import dev.openhub.app.R
 import dev.openhub.app.ui.EventoViewModel
-import dev.openhub.app.ui.theme.BlackBackground
 import dev.openhub.app.ui.theme.TextLight
 import dev.openhub.app.ui.theme.TextSubtitle
 import dev.openhub.app.ui.theme.TextTitle
-import dev.openhub.app.ui.theme.liquidGlass
 import dev.openhub.app.ui.theme.liquidGlassStrong
 import dev.openhub.app.ui.theme.spatialClickable
 
@@ -114,7 +107,7 @@ fun DetailScreen(
                                     .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.White.copy(alpha = 0.15f))
                                     .border(
                                         width = 1.5.dp,
-                                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        brush = Brush.verticalGradient(
                                             colors = listOf(
                                                 Color.White.copy(alpha = 0.6f),
                                                 Color.White.copy(alpha = 0.1f),

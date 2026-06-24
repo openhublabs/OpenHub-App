@@ -17,27 +17,4 @@ data class Evento(
     val tiempoTexto: String = ""
 )
 
-data class Categoria(
-    val id: Int,
-    val nombre: String,
-    val icono: String
-)
 
-data class Usuario(
-    val id: Int,
-    val nombre: String,
-    val correo: String
-)
-
-data class Organizador(
-    val id: Int,
-    val nombre: String,
-    val correo: String
-)
-
-data class Inscripcion(
-    val id: Int,
-    val usuarioId: Int,
-    val eventoId: Int,
-    val fechaInscripcion: String
-)

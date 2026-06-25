@@ -31,9 +31,29 @@ class EventoViewModel(application: Application) : AndroidViewModel(application) 
     private val _favoritos = MutableLiveData<Set<String>>(emptySet())
     val favoritos: LiveData<Set<String>> = _favoritos
 
+    private val _historial = MutableLiveData<List<String>>(emptyList())
+    val historial: LiveData<List<String>> = _historial
+
     init {
         cargarFavoritos()
+        cargarHistorial()
         cargarEventos()
+    }
+
+    private fun cargarHistorial() {
+        val histStr = sharedPrefs.getString("historial_csv", "") ?: ""
+        if (histStr.isNotEmpty()) {
+            _historial.value = histStr.split(",")
+        }
+    }
+
+    fun agregarAHistorial(eventoId: String) {
+        val currentList = _historial.value?.toMutableList() ?: mutableListOf()
+        currentList.remove(eventoId)
+        currentList.add(0, eventoId)
+        val limited = currentList.take(20)
+        _historial.value = limited
+        sharedPrefs.edit().putString("historial_csv", limited.joinToString(",")).apply()
     }
 
     private fun cargarFavoritos() {

@@ -97,17 +97,14 @@ fun FeedScreen(
             hasAnimated = true
         }
     }
-
-    var selectedCategory by remember { mutableStateOf("Todas") }
-    var selectedCity by remember { mutableStateOf("Todas") }
-
-    val categories = listOf("Todas") + eventos.map { it.categoria }.distinct()
-    val cities = listOf("Todas") + eventos.map { it.ubicacion.split(",").first() }.distinct()
+    val currentTime = System.currentTimeMillis()
+    // Restamos 24 horas para que los eventos de "hoy" todavía se muestren durante todo el día
+    val startOfDay = currentTime - (24 * 60 * 60 * 1000)
 
     val filteredEventos = eventos.filter {
-        (selectedCategory == "Todas" || it.categoria == selectedCategory) &&
-        (selectedCity == "Todas" || it.ubicacion.split(",").first() == selectedCity)
-    }.sortedBy { it.fecha }
+        val eventTime = dev.openhub.app.util.EventoUtils.parseDateToLong(it.fecha)
+        eventTime == 0L || eventTime >= startOfDay
+    }.sortedBy { dev.openhub.app.util.EventoUtils.parseDateToLong(it.fecha).takeIf { t -> t > 0L } ?: Long.MAX_VALUE }
 
     // lazycolumn es la lista optimizada vertical que solo dibuja lo que ves en pantalla
     // el padding inferior asegura que las tarjetas no se tapen con el menu de navegacion
@@ -123,48 +120,12 @@ fun FeedScreen(
 
         item {
             StaggeredItem(index = 1, hasAnimated = hasAnimated) {
-                Column {
-                    Text(
-                        "Filtros",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextLight,
-                        modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 8.dp)
-                    )
-                    LazyRow(contentPadding = PaddingValues(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(categories) { cat ->
-                            androidx.compose.material3.FilterChip(
-                                selected = selectedCategory == cat,
-                                onClick = { selectedCategory = cat },
-                                label = { Text(cat) },
-                                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color.White,
-                                    selectedLabelColor = Color.Black
-                                )
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LazyRow(contentPadding = PaddingValues(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(cities) { city ->
-                            androidx.compose.material3.FilterChip(
-                                selected = selectedCity == city,
-                                onClick = { selectedCity = city },
-                                label = { Text(city) },
-                                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color.White,
-                                    selectedLabelColor = Color.Black
-                                )
-                            )
-                        }
-                    }
-                    
-                    Text(
-                        "Próximos Eventos",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = TextTitle,
-                        modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 12.dp)
-                    )
-                }
+                Text(
+                    "Próximos Eventos",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextTitle,
+                    modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp)
+                )
             }
         }
 
@@ -219,7 +180,9 @@ fun ExplorarScreen(viewModel: EventoViewModel, navController: NavController, sha
     val eventos: List<Evento> by viewModel.eventos.observeAsState(emptyList())
     LazyColumn(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()), contentPadding = PaddingValues(bottom = 100.dp)) {
         item { Header(title = "Explorar", subtitle = "Los eventos más populares.") }
-        items(eventos.sortedByDescending { it.clips }) { evento -> EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope) }
+        itemsIndexed(eventos.sortedByDescending { it.clips }) { index, evento -> 
+            EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope, rank = index + 1) 
+        }
     }
 }
 
@@ -227,9 +190,38 @@ fun ExplorarScreen(viewModel: EventoViewModel, navController: NavController, sha
 @Composable
 fun CategoriasScreen(viewModel: EventoViewModel, navController: NavController, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope, innerPadding: PaddingValues) {
     val eventos: List<Evento> by viewModel.eventos.observeAsState(emptyList())
+    
+    var selectedCategory by remember { mutableStateOf("Todas") }
+    val categories = listOf("Todas") + eventos.map { it.categoria }.distinct()
+    
+    val filteredEventos = eventos.filter {
+        selectedCategory == "Todas" || it.categoria == selectedCategory
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()), contentPadding = PaddingValues(bottom = 100.dp)) {
         item { Header(title = "Categorías", subtitle = "Navega por ecosistemas visuales.") }
-        items(eventos.sortedBy { it.categoria }) { evento -> EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope) }
+        
+        item {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp), 
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(categories) { cat ->
+                    androidx.compose.material3.FilterChip(
+                        selected = selectedCategory == cat,
+                        onClick = { selectedCategory = cat },
+                        label = { Text(cat) },
+                        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color.White,
+                            selectedLabelColor = Color.Black
+                        )
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        items(filteredEventos.sortedBy { it.categoria }) { evento -> EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope) }
     }
 }
 
@@ -237,9 +229,22 @@ fun CategoriasScreen(viewModel: EventoViewModel, navController: NavController, s
 @Composable
 fun HistorialScreen(viewModel: EventoViewModel, navController: NavController, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope, innerPadding: PaddingValues) {
     val eventos: List<Evento> by viewModel.eventos.observeAsState(emptyList())
+    val historialIds by viewModel.historial.observeAsState(emptyList())
+    
+    val historialEventos = historialIds.mapNotNull { id -> eventos.find { it.id == id } }
+
     LazyColumn(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()), contentPadding = PaddingValues(bottom = 100.dp)) {
         item { Header(title = "Historial", subtitle = "Tus viajes anteriores registrados.") }
-        items(eventos.take(2)) { evento -> EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope) }
+        
+        if (historialEventos.isEmpty()) {
+            item {
+                Text("Aún no tienes un historial de eventos.", color = dev.openhub.app.ui.theme.TextSubtitle, modifier = Modifier.padding(24.dp))
+            }
+        } else {
+            items(historialEventos) { evento -> 
+                EventCard(evento, navController, viewModel, sharedTransitionScope, animatedVisibilityScope) 
+            }
+        }
     }
 }
 
@@ -350,7 +355,8 @@ fun EventCard(
     navController: NavController,
     viewModel: EventoViewModel,
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    rank: Int? = null
 ) {
     val context = LocalContext.current
     val favoritos by viewModel.favoritos.observeAsState(emptySet())
@@ -423,9 +429,10 @@ fun EventCard(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = evento.categoria, 
+                            text = if (rank != null) "🔥 #$rank  |  ${evento.categoria}" else evento.categoria, 
                             color = Color.White, 
-                            style = MaterialTheme.typography.labelMedium
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (rank != null) androidx.compose.ui.text.font.FontWeight.Bold else null
                         )
                     }
 

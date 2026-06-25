@@ -29,6 +29,8 @@ import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,8 +77,36 @@ fun DetailScreen(
     val hazeState = remember { HazeState() }
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val favoritos by viewModel.favoritos.observeAsState(emptySet())
+    var showLoginPrompt by remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    if (showLoginPrompt) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showLoginPrompt = false },
+            title = { Text("Sesión requerida") },
+            text = { Text("Debes iniciar sesión para guardar este evento en tus favoritos.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showLoginPrompt = false
+                    navController.navigate(dev.openhub.app.ui.compose.Screen.Perfil.route)
+                }) {
+                    Text("Iniciar Sesión")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showLoginPrompt = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     evento?.let { currentEvento ->
+        val isFavorito = favoritos.contains(currentEvento.id)
+        androidx.compose.runtime.LaunchedEffect(currentEvento.id) {
+            viewModel.agregarAHistorial(currentEvento.id)
+        }
+        
         // scope especial que permite vincular visualmente esta pantalla con la pantalla anterior
         with(sharedTransitionScope) {
             Box(
@@ -120,20 +151,13 @@ fun DetailScreen(
                                 onClick = { navController.navigateUp() },
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.White.copy(alpha = 0.15f))
+                                    .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.Black.copy(alpha = 0.4f))
                                     .border(
-                                        width = 1.5.dp,
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.6f),
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.Transparent,
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.White.copy(alpha = 0.4f)
-                                            )
-                                        ),
+                                        width = 1.dp,
+                                        color = Color.White.copy(alpha = 0.3f),
                                         shape = CircleShape
                                     )
+                                    .background(Color.Black.copy(alpha = 0.3f))
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -142,38 +166,61 @@ fun DetailScreen(
                                 )
                             }
                             
-                            IconButton(
-                                onClick = {
-                                    val sendIntent: Intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, "¡Mira este evento!: ${currentEvento.titulo} en ${currentEvento.url}")
-                                        type = "text/plain"
-                                    }
-                                    val shareIntent = Intent.createChooser(sendIntent, null)
-                                    context.startActivity(shareIntent)
-                                },
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.White.copy(alpha = 0.15f))
-                                    .border(
-                                        width = 1.5.dp,
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.6f),
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.Transparent,
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.White.copy(alpha = 0.4f)
-                                            )
-                                        ),
-                                        shape = CircleShape
-                                    )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Share,
-                                    contentDescription = "Compartir",
-                                    tint = Color.White
-                                )
+                                IconButton(
+                                    onClick = {
+                                        val sendIntent: Intent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, "¡Mira este evento!: ${currentEvento.titulo} en ${currentEvento.url}")
+                                            type = "text/plain"
+                                        }
+                                        val shareIntent = Intent.createChooser(sendIntent, null)
+                                        context.startActivity(shareIntent)
+                                    },
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.Black.copy(alpha = 0.4f))
+                                        .border(
+                                            width = 1.dp,
+                                            color = Color.White.copy(alpha = 0.3f),
+                                            shape = CircleShape
+                                        )
+                                        .background(Color.Black.copy(alpha = 0.3f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Share,
+                                        contentDescription = "Compartir",
+                                        tint = Color.White
+                                    )
+                                }
+                                
+                                IconButton(
+                                    onClick = {
+                                        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null) {
+                                            viewModel.toggleFavorito(currentEvento.id)
+                                        } else {
+                                            showLoginPrompt = true
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .hazeChild(state = hazeState, shape = CircleShape, blurRadius = 64.dp, tint = Color.Black.copy(alpha = 0.4f))
+                                        .border(
+                                            width = 1.dp,
+                                            color = Color.White.copy(alpha = 0.3f),
+                                            shape = CircleShape
+                                        )
+                                        .background(Color.Black.copy(alpha = 0.3f))
+                                ) {
+                                    Icon(
+                                        imageVector = if (isFavorito) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = "Favorito",
+                                        tint = if (isFavorito) Color.Red else Color.White
+                                    )
+                                }
                             }
                         }
                     }

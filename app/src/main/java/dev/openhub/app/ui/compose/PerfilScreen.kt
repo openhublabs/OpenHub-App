@@ -23,11 +23,26 @@ import dev.openhub.app.ui.EventoViewModel
 import dev.openhub.app.ui.theme.TextSubtitle
 import dev.openhub.app.ui.theme.TextTitle
 
-@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun PerfilScreen(viewModel: EventoViewModel, navController: NavController, onNavigateToLogin: () -> Unit) {
+fun PerfilScreen(
+    viewModel: EventoViewModel, 
+    navController: NavController, 
+    onNavigateToLogin: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
+) {
     val auth = remember { FirebaseAuth.getInstance() }
     var currentUser by remember { mutableStateOf(auth.currentUser) }
+    
+    val eventos by viewModel.eventos.observeAsState(emptyList())
+    val favoritosIds by viewModel.favoritos.observeAsState(emptySet())
+    val eventosFavoritos = eventos.filter { favoritosIds.contains(it.id) }
 
     Column(
         modifier = Modifier
@@ -93,7 +108,24 @@ fun PerfilScreen(viewModel: EventoViewModel, navController: NavController, onNav
             Text("Tus Favoritos", color = TextTitle, style = MaterialTheme.typography.titleLarge, modifier = Modifier.align(Alignment.Start).padding(start = 24.dp))
             Spacer(modifier = Modifier.height(16.dp))
             
-            // TODO: List favorites
+            if (eventosFavoritos.isEmpty()) {
+                Text("Aún no tienes eventos favoritos.", color = TextSubtitle, modifier = Modifier.padding(16.dp))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    items(eventosFavoritos) { evento ->
+                        EventCard(
+                            evento = evento,
+                            navController = navController,
+                            viewModel = viewModel,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -210,7 +210,7 @@ fun MainScreen(viewModel: EventoViewModel, onNavigateToLogin: () -> Unit) {
                         DetailScreen(viewModel, navController, this@SharedTransitionLayout, this)
                     }
                     composable(Screen.Perfil.route) {
-                        PerfilScreen(viewModel, navController, onNavigateToLogin)
+                        PerfilScreen(viewModel, navController, onNavigateToLogin, this@SharedTransitionLayout, this)
                     }
                 }
             }

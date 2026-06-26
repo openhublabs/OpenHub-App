@@ -5,10 +5,10 @@
 # Openhub Android
 
 <p align="center">
-  <b>Eventos de Tecnología en un Solo Lugar</b>
+  <b>Tech Events in One Place</b>
 </p>
 <p align="center">
-  Un directorio inmersivo con diseño <i>Spatial UI</i> y <i>Liquid Glass</i> para conectar a la comunidad de desarrolladores global desde la palma de tu mano.
+  An immersive directory with <i>Spatial UI</i> and <i>Liquid Glass</i> design to connect the global developer community from the palm of your hand.
 </p>
 
 <div align="center">
@@ -21,65 +21,65 @@
 
 <br>
 
-## 🔭 El Problema
-La comunidad tecnológica se enfrenta a una desconexión en la difusión de eventos. Aunque existen cientos de conferencias, hackathons y meetups, descubrirlos desde el móvil suele ser una experiencia estática y complicada.
+## 🔭 The Problem
+The tech community faces a disconnect in event discovery. Although there are hundreds of conferences, hackathons, and meetups, finding them from a mobile device is often a static and complicated experience.
 
 <table width="100%">
   <tr>
     <td width="33%" valign="top">
-      <h3 align="center">🧩 Fragmentación</h3>
-      <p align="center">Los eventos de tecnología están dispersos en múltiples plataformas aisladas o grupos cerrados.</p>
+      <h3 align="center">🧩 Fragmentation</h3>
+      <p align="center">Tech events are scattered across multiple isolated platforms or private groups.</p>
     </td>
     <td width="33%" valign="top">
-      <h3 align="center">🔊 Ruido Digital</h3>
-      <p align="center">El exceso de información irrelevante hace que los desarrolladores se pierdan verdaderas oportunidades de networking.</p>
+      <h3 align="center">🔊 Digital Noise</h3>
+      <p align="center">Irrelevant information overload causes developers to miss real networking opportunities.</p>
     </td>
     <td width="33%" valign="top">
-      <h3 align="center">🎯 Poco Foco B2B</h3>
-      <p align="center">Falta de plataformas móviles que permitan filtrar eficientemente por nivel técnico, stack o tipo de audiencia.</p>
+      <h3 align="center">🎯 Lack of B2B Focus</h3>
+      <p align="center">Lack of mobile platforms that allow efficient filtering by technical level, stack, or audience type.</p>
     </td>
   </tr>
 </table>
 
 <br>
 
-## 💡 La Solución
-Openhub es una aplicación Android nativa centralizada que actúa como un directorio interactivo. Olvídate del ruido digital y nunca vuelvas a perder una oportunidad de networking.
+## 💡 The Solution
+Openhub is a centralized native Android app that serves as an interactive directory. Forget the digital noise and never miss a networking opportunity again.
 
-### Características Principales
-1. **Directorio Central:** Filtra por categoría, fecha o ubicación, y explora el ecosistema visualmente.
-2. **Impulsa tus eventos:** Encuentra conferencias globales con descripciones inmersivas.
-3. **Spatial UI:** Una interfaz premium nativa basada en cristales líquidos (Liquid Glass), transiciones de elementos compartidos (Shared Elements) y animaciones fluidas a 60fps inspiradas en iOS 26.
+### Key Features
+1. **Central Directory:** Filter by category, date, or location, and explore the ecosystem visually.
+2. **Boost your events:** Find global conferences with immersive descriptions.
+3. **Spatial UI:** A premium native interface based on Liquid Glass, Shared Elements transitions, and fluid 60fps animations inspired by iOS 26.
 
 <br>
 
-## ⚙️ Stack Tecnológico
-Arquitectura móvil diseñada para interfaces fluidas, animaciones inmersivas y máximo rendimiento.
+## ⚙️ Tech Stack
+Mobile architecture designed for fluid interfaces, immersive animations, and maximum performance.
 
-| **Componente** | **Tecnología** | **Descripción** |
+| **Component** | **Technology** | **Description** |
 | :--- | :--- | :--- |
-| **Frontend** | <img src="https://img.shields.io/badge/Kotlin-0095D5?style=for-the-badge&logo=kotlin&logoColor=white" valign="middle" /> <img src="https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" valign="middle" /> | Android Nativo con Kotlin y Jetpack Compose para una arquitectura reactiva y moderna. |
-| **Animaciones** | <img src="https://img.shields.io/badge/Compose_Animation-111111?style=for-the-badge&logo=android&logoColor=white" valign="middle" /> | Compose Animation API y `Modifier.graphicsLayer` para el motor de físicas de cristal y transiciones en GPU. |
+| **Frontend** | <img src="https://img.shields.io/badge/Kotlin-0095D5?style=for-the-badge&logo=kotlin&logoColor=white" valign="middle" /> <img src="https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" valign="middle" /> | Native Android with Kotlin and Jetpack Compose for a reactive, modern architecture. |
+| **Animations** | <img src="https://img.shields.io/badge/Compose_Animation-111111?style=for-the-badge&logo=android&logoColor=white" valign="middle" /> | Compose Animation API and `Modifier.graphicsLayer` for the glass physics engine and GPU-backed transitions. |
 
 <br>
 
 ## 🗺️ Roadmap
-- [x] **Arquitectura Base:** Configuración de Android Studio + Kotlin + Jetpack Compose.
-- [x] **Spatial UI System:** Motor de estilos `liquid-glass` y animaciones esmeriladas ultra optimizadas.
-- [x] **Splash Screen Fluido:** Animaciones de entrada/salida integradas con el sistema nativo de Android 12+.
-- [x] **Dashboard Interactivo:** Panel de eventos con Navbar esmerilado inferior y transiciones de tarjetas en cascada.
-- [x] **Animaciones de Detalle:** Transiciones fluidas de elementos compartidos (texto e imagen) al estilo Apple.
-- [ ] **Backend Integration:** Conexión con base de datos (PostgreSQL/Firebase) para ingesta dinámica.
-- [ ] **Auth System:** Inicio de sesión y manejo de perfiles para desarrolladores.
+- [x] **Base Architecture:** Android Studio + Kotlin + Jetpack Compose setup.
+- [x] **Spatial UI System:** `liquid-glass` style engine and ultra-optimized frosted animations.
+- [x] **Fluid Splash Screen:** Entry/exit animations integrated with the native Android 12+ system.
+- [x] **Interactive Dashboard:** Event panel with frosted bottom navbar and cascading card transitions.
+- [x] **Detail Animations:** Smooth Apple-style shared element transitions (text and image).
+- [ ] **Backend Integration:** Database connection (PostgreSQL/Firebase) for dynamic ingestion.
+- [ ] **Auth System:** Login and profile management for developers.
 
 <br>
 
-## 🤝 Agradecimientos
-- A la comunidad Open Source de Android por proveer librerías clave como Coil y Haze.
-- A los creadores de interfaces espaciales que inspiran el futuro del diseño móvil.
+## 🤝 Acknowledgments
+- To the Android Open Source community for providing key libraries like Coil and Haze.
+- To the creators of spatial interfaces who inspire the future of mobile design.
 
 <br>
 
 <p align="center">
-  <sub>Construido con ❤️ para la comunidad global de desarrolladores.</sub>
+  <sub>Built with ❤️ for the global developer community.</sub>
 </p>

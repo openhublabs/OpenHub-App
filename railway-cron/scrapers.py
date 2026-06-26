@@ -7,7 +7,6 @@ from firecrawl import Firecrawl
 
 from config import (
     EVENTBRITE_URLS,
-    EVENT_DETAIL_SCHEMA,
     EVENT_JSON_SCHEMA,
     FIRECRAWL_API_KEY,
     MEETUP_URLS,
@@ -151,7 +150,7 @@ def parse_date(date_str: str) -> str:
     return f"{dt.day} {meses[dt.month - 1]} {dt.year}"
 
 
-def normalize_event(raw: dict, source: str, url_tags: list[str] | None = None, ciudad: str = "") -> dict | None:
+def normalize_event(raw: dict, source: str, url_tags: list[str] | None = None) -> dict | None:
     title = (raw.get("title") or "").strip()
     if not title:
         return None
@@ -166,17 +165,6 @@ def normalize_event(raw: dict, source: str, url_tags: list[str] | None = None, c
         is_online = True
 
     category = infer_category(tags) or infer_category_from_title(title) or infer_category(url_tags)
-    if not category:
-        return None
-    if not raw.get("location", "").strip():
-        return None
-    if not date_str:
-        return None
-    if not raw.get("image_url", "").strip():
-        return None
-    if not raw.get("description", "").strip():
-        return None
-
     final_tags = tags if tags else url_tags
 
     return {
@@ -185,7 +173,6 @@ def normalize_event(raw: dict, source: str, url_tags: list[str] | None = None, c
         "titulo": title,
         "descripcion": raw.get("description", ""),
         "categoria": category,
-        "ciudad": ciudad,
         "ubicacion": raw.get("location", ""),
         "fecha": parse_date(date_str),
         "horaInicio": raw.get("time", ""),
@@ -232,7 +219,7 @@ def scrape_peruanos() -> list[dict]:
             "type": event.get("type", ""),
             "tags": event.get("tags", []),
         }
-        normalized_event = normalize_event(raw, "peruanos.dev", ciudad="Lima")
+        normalized_event = normalize_event(raw, "peruanos.dev")
         if normalized_event:
             normalized.append(normalized_event)
 
@@ -240,19 +227,7 @@ def scrape_peruanos() -> list[dict]:
     return normalized
 
 
-def _firecrawl_scrape_event_detail(event_url: str, firecrawl) -> dict | None:
-    try:
-        result = firecrawl.scrape(
-            event_url,
-            formats=[{"type": "json", "schema": EVENT_DETAIL_SCHEMA}],
-        )
-        return result.json if result and hasattr(result, "json") else None
-    except Exception as e:
-        log(f"    Error scraping detail: {e}")
-        return None
-
-
-def _firecrawl_scrape_urls(urls: list[tuple[str, str]], source: str) -> list[dict]:
+def _firecrawl_scrape_urls(urls: list[str], source: str) -> list[dict]:
     if not FIRECRAWL_API_KEY:
         log(f"[{source}] No FIRECRAWL_API_KEY set, skipping")
         return []
@@ -262,11 +237,10 @@ def _firecrawl_scrape_urls(urls: list[tuple[str, str]], source: str) -> list[dic
         return []
 
     firecrawl = Firecrawl(api_key=FIRECRAWL_API_KEY)
+
     all_events = []
-
-    for url, ciudad in urls:
-        log(f"  [{source}] Scraping listing: {url}")
-
+    for url in urls:
+        log(f"  [{source}] Scraping {url}")
         try:
             result = firecrawl.scrape(
                 url,
@@ -281,32 +255,19 @@ def _firecrawl_scrape_urls(urls: list[tuple[str, str]], source: str) -> list[dic
             log(f"  [{source}] No events found")
             continue
 
-        listing_events = json_data["events"]
-        log(f"  [{source}] Found {len(listing_events)} events in listing")
-
         source_url = url
         if result and hasattr(result, "metadata") and result.metadata:
             source_url = getattr(result.metadata, "source_url", "") or url
 
         url_tags = infer_tags_from_url(source_url)
+        event_count = len(json_data["events"])
 
-        for raw_event in listing_events:
-            event_url = raw_event.get("url")
-            if not event_url:
-                continue
-
-            log(f"    [{source}] Scraping event: {event_url[:60]}...")
-            detail = _firecrawl_scrape_event_detail(event_url, firecrawl)
-
-            merged = {**raw_event}
-            if detail:
-                for key in ["description", "date", "time", "location", "organizer", "image_url"]:
-                    if detail.get(key):
-                        merged[key] = detail[key]
-
-            normalized = normalize_event(merged, source, url_tags=url_tags, ciudad=ciudad)
+        for event in json_data["events"]:
+            normalized = normalize_event(event, source, url_tags=url_tags)
             if normalized:
                 all_events.append(normalized)
+
+        log(f"  [{source}] {source_url} -> {event_count} events")
 
     log(f"[{source}] Done — {len(all_events)} events from {len(urls)} URLs")
     return all_events

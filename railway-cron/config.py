@@ -14,13 +14,15 @@ FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "")
 PERUANOS_API_URL = "https://peruanos.dev/api/events"
 
 EVENTBRITE_URLS = [
-    "https://www.eventbrite.com/d/peru/technology/",
-    "https://www.eventbrite.com/d/online/technology/",
+    ("https://www.eventbrite.com/d/peru/technology/", "Lima"),
+    ("https://www.eventbrite.com/d/argentina--buenos-aires/technology/", "Buenos Aires"),
+    ("https://www.eventbrite.com/d/mexico--ciudad-de-mexico/technology/", "Ciudad de México"),
 ]
 
 MEETUP_URLS = [
-    "https://www.meetup.com/find/?keywords=technology&location=pe--Lima",
-    "https://www.meetup.com/find/?keywords=startup&location=pe--Lima",
+    ("https://www.meetup.com/find/?keywords=technology&location=pe--Lima", "Lima"),
+    ("https://www.meetup.com/find/?keywords=technology&location=ar--Buenos+Aires", "Buenos Aires"),
+    ("https://www.meetup.com/find/?keywords=technology&location=mx--Mexico+City", "Ciudad de México"),
 ]
 
 TAG_TO_CATEGORY = {
@@ -98,6 +100,23 @@ TAG_TO_CATEGORY = {
     "vc": "inversion",
     "funding": "inversion",
     "technology": "conferencia",
+}
+
+EVENT_DETAIL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "date": {"type": "string"},
+        "time": {"type": "string"},
+        "location": {"type": "string"},
+        "organizer": {"type": "string"},
+        "image_url": {"type": "string"},
+        "url": {"type": "string"},
+        "is_online": {"type": "boolean"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["title", "url"],
 }
 
 EVENT_JSON_SCHEMA = {

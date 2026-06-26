@@ -144,21 +144,103 @@ def infer_tags_from_url(url: str) -> list[str]:
     return []
 
 
+# Date formats Eventbrite/Meetup may return
+_DATE_FORMATS = [
+    "%Y-%m-%d",
+    "%B %d, %Y",           # July 13, 2025
+    "%B %d",               # July 13  (no year)
+    "%A, %B %d",           # Monday, June 29
+    "%A, %B %d, %Y",       # Monday, June 29, 2025
+    "%b %d, %Y",           # Jul 13, 2025
+    "%b %d",               # Jul 13
+    "%d de %B de %Y",      # 15 de agosto de 2025  (full Spanish, translated month)
+    "%d de %B",            # 15 de agosto           (translated month)
+    "%A, %d de %B de %Y",  # sábado, 15 de agosto de 2025 (translated day+month)
+    "%A, %d de %B",        # sábado, 15 de agosto          (translated day+month)
+]
+
+_SPANISH_MONTHS = {
+    "enero": "January", "febrero": "February", "marzo": "March",
+    "abril": "April", "mayo": "May", "junio": "June",
+    "julio": "July", "agosto": "August", "septiembre": "September",
+    "octubre": "October", "noviembre": "November", "diciembre": "December",
+    "ene": "Jan", "feb": "Feb", "mar": "Mar", "abr": "Apr",
+    "may": "May", "jun": "Jun", "jul": "Jul", "ago": "Aug",
+    "sep": "Sep", "oct": "Oct", "nov": "Nov", "dic": "Dec",
+}
+
+_SPANISH_DAYS = {
+    "lunes": "Monday", "martes": "Tuesday", "miércoles": "Wednesday",
+    "miercoles": "Wednesday", "jueves": "Thursday", "viernes": "Friday",
+    "sábado": "Saturday", "sabado": "Saturday", "domingo": "Sunday",
+}
+
+
+def _normalize_spanish(s: str) -> str:
+    """Replace Spanish day/month names with English so strptime can parse them."""
+    for es, en in _SPANISH_DAYS.items():
+        s = re.sub(rf'\b{es}\b', en, s, flags=re.IGNORECASE)
+    for es, en in _SPANISH_MONTHS.items():
+        s = re.sub(rf'\b{es}\b', en, s, flags=re.IGNORECASE)
+    return s
+
+
+def _try_parse(candidate: str) -> "datetime | None":
+    candidate = _normalize_spanish(candidate.strip().rstrip(","))
+    for fmt in _DATE_FORMATS:
+        try:
+            dt = datetime.strptime(candidate, fmt)
+            # If no year in the format, assume current or next year
+            if dt.year == 1900:
+                now = datetime.now()
+                dt = dt.replace(year=now.year)
+                if dt.date() < now.date():
+                    dt = dt.replace(year=now.year + 1)
+            return dt
+        except ValueError:
+            continue
+    return None
+
+
 def parse_date(date_str: str) -> str:
     if not date_str:
         return ""
+
+    # Handle ISO / fromisoformat quickly
     try:
-        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]
+        return f"{dt.day} {meses[dt.month - 1]} {dt.year}"
     except (ValueError, AttributeError):
-        try:
-            dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-        except (ValueError, AttributeError):
-            return date_str
-    meses = [
-        "ene", "feb", "mar", "abr", "may", "jun",
-        "jul", "ago", "sep", "oct", "nov", "dic",
-    ]
-    return f"{dt.day} {meses[dt.month - 1]} {dt.year}"
+        pass
+
+    # If starts with "Multiple dates", try to extract first real date after it
+    cleaned = date_str
+    if re.search(r'multiple dates', date_str, re.IGNORECASE):
+        after = re.sub(r'multiple dates[^,;]*(from|starting)?\s*', '', date_str, flags=re.IGNORECASE).strip()
+        # Try to parse whatever comes after (e.g. "July 4, 2025")
+        if after:
+            cleaned = after
+        else:
+            # Pure recurring event with no real start date (e.g. "every Friday")
+            # Return empty so quality filter rejects it — undated events shouldn't be stored
+            return ""
+
+    # Try the whole string first
+    dt = _try_parse(cleaned)
+    if dt:
+        meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]
+        return f"{dt.day} {meses[dt.month - 1]} {dt.year}"
+
+    # If it looks like a range "July 13-14", grab just the start
+    range_match = re.match(r'^(.+?)\s*[-–]\s*\d+', cleaned)
+    if range_match:
+        dt = _try_parse(range_match.group(1).strip())
+        if dt:
+            meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]
+            return f"{dt.day} {meses[dt.month - 1]} {dt.year}"
+
+    return date_str  # fallback: keep raw string
 
 
 def passes_quality_filter(merged: dict, url_tags: list[str]) -> tuple[bool, list[str]]:
@@ -170,7 +252,7 @@ def passes_quality_filter(merged: dict, url_tags: list[str]) -> tuple[bool, list
     Required fields:
       - title       : non-empty string
       - url         : non-empty string
-      - date        : non-empty (raw date string from scrape)
+      - date        : must parse to a non-empty result AND not be in the past
       - location    : non-empty (venue or "Online")
       - image_url   : non-empty URL
       - description : non-empty text
@@ -182,8 +264,25 @@ def passes_quality_filter(merged: dict, url_tags: list[str]) -> tuple[bool, list
         missing.append("title")
     if not (merged.get("url") or "").strip():
         missing.append("url")
-    if not (merged.get("date") or "").strip():
+
+    # Validate the parsed date — not the raw string.
+    # parse_date() returns "" for "Multiple dates" with no real start → caught here.
+    raw_date = (merged.get("date") or "").strip()
+    parsed_date = parse_date(raw_date)
+    if not parsed_date:
         missing.append("date")
+    else:
+        # Reject events that are already in the past (stale promoted events, old data, etc.)
+        _today = datetime.now().date()
+        for fmt in ("%d %b %Y", "%Y-%m-%d"):
+            try:
+                event_date = datetime.strptime(parsed_date, fmt).date()
+                if event_date < _today:
+                    missing.append("fecha_pasada")
+                break
+            except ValueError:
+                continue
+
     if not (merged.get("location") or "").strip():
         missing.append("location")
     if not (merged.get("image_url") or "").strip():
@@ -236,7 +335,7 @@ def normalize_event(merged: dict, source: str, url_tags: list[str] | None = None
         "descripcion": merged.get("description", ""),
         "categoria": category,
         "ciudad": ciudad,
-        "ubicacion": merged.get("location", ""),
+        "ubicacion": "Online" if merged.get("is_online") or (merged.get("location") or "").lower() in ("online event", "online") else merged.get("location", ""),
         "fecha": parse_date(date_str),
         "horaInicio": merged.get("time", ""),
         "horaFin": "",

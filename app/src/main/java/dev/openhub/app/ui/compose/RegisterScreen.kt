@@ -15,11 +15,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import java.util.HashMap
 
 @Composable
 fun RegisterScreen(onRegisterSuccess: () -> Unit, onNavigateToLogin: () -> Unit) {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() } // 👈 1. CONECTAMOS FIRESTORE
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -124,13 +128,35 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit, onNavigateToLogin: () -> Unit)
                             if (email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
                                 if (password == confirmPassword) {
                                     isLoading = true
-                                    auth.createUserWithEmailAndPassword(email.trim(), password.trim())
+                                    val emailTrimmed = email.trim()
+                                    auth.createUserWithEmailAndPassword(emailTrimmed, password.trim())
                                         .addOnCompleteListener { task ->
-                                            isLoading = false
                                             if (task.isSuccessful) {
-                                                Toast.makeText(context, "¡Registro exitoso!", Toast.LENGTH_SHORT).show()
-                                                onRegisterSuccess()
+                                                val userId = auth.currentUser?.uid
+
+                                                // 👈 2. ARMAMOS EL PAQUETE EXACTO PARA LA WEB
+                                                val nuevoUsuario = HashMap<String, Any>()
+                                                nuevoUsuario["email"] = emailTrimmed
+                                                nuevoUsuario["rol"] = "ASISTENTE"
+                                                nuevoUsuario["estado"] = "Activo"
+                                                nuevoUsuario["createdAt"] = FieldValue.serverTimestamp()
+                                                nuevoUsuario["updatedAt"] = FieldValue.serverTimestamp()
+
+                                                if (userId != null) {
+                                                    // 👈 3. INYECTAMOS EN LA COLECCIÓN "usuarios"
+                                                    db.collection("usuarios").document(userId)
+                                                        .set(nuevoUsuario)
+                                                        .addOnCompleteListener {
+                                                            isLoading = false
+                                                            Toast.makeText(context, "¡Registro exitoso!", Toast.LENGTH_SHORT).show()
+                                                            onRegisterSuccess()
+                                                        }
+                                                } else {
+                                                    isLoading = false
+                                                    onRegisterSuccess()
+                                                }
                                             } else {
+                                                isLoading = false
                                                 Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                                             }
                                         }

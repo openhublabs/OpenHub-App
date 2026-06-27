@@ -1,5 +1,6 @@
 package dev.openhub.app.ui.compose
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,9 +10,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Login
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dev.openhub.app.ui.EventoViewModel
 import dev.openhub.app.ui.theme.TextSubtitle
 import dev.openhub.app.ui.theme.TextTitle
@@ -37,39 +40,57 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 
-// ─────────────────────────────────────────────────────
-// Colores exactos de Particle News Account screen
-// widget_text_headline="#000000", widget_text_secondary="#757575"
-// Accent azul: #2563EB (Color.Blue en Particle), Morado CTA: #7C3AED
-// ─────────────────────────────────────────────────────
 private val ParticleBlue  = Color(0xFF2563EB)
 private val ParticlePurple = Color(0xFF7C3AED)
-private val ParticleGray  = Color(0xFFF5F5F5)  // fondo de cards
-private val ParticleText  = Color(0xFF212121)   // widget_text_primary
-private val ParticleSecondary = Color(0xFF757575) // widget_text_secondary
+private val ParticleGray  = Color(0xFFF5F5F5)
+private val ParticleText  = Color(0xFF212121)
+private val ParticleSecondary = Color(0xFF757575)
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PerfilScreen(
-    viewModel: EventoViewModel, 
-    navController: NavController, 
+    viewModel: EventoViewModel,
+    navController: NavController,
     onNavigateToLogin: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() }
+
     var currentUser by remember { mutableStateOf(auth.currentUser) }
     var showInfoCard by remember { mutableStateOf(true) }
+    var nombreCompleto by remember { mutableStateOf("") }
 
     val eventos by viewModel.eventos.observeAsState(emptyList())
     val favoritosIds by viewModel.favoritos.observeAsState(emptySet())
     val eventosFavoritos = eventos.filter { favoritosIds.contains(it.id) }
 
-    // fondo blanco/gris claro exacto de Particle News Account screen
+    // Cargar nombreCompleto desde Firestore cuando el usuario cambia
+    // Cargar nombreCompleto desde Firestore cuando el usuario cambia
+    LaunchedEffect(currentUser) {
+        val user = currentUser // 👈 Esta es la copia segura que Kotlin necesita
+        if (user != null) {
+            db.collection("usuarios").document(user.uid)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val nombre = document.getString("nombreCompleto") ?: ""
+                        nombreCompleto = if (nombre.isNotEmpty()) nombre else user.email?.substringBefore("@") ?: "Usuario"
+                    } else {
+                        nombreCompleto = user.email?.substringBefore("@") ?: "Usuario"
+                    }
+                }
+                .addOnFailureListener {
+                    nombreCompleto = user.email?.substringBefore("@") ?: "Usuario"
+                }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F7)) // iOS system gray 6 — igual al fondo de Account en Particle
+            .background(Color(0xFFF2F2F7))
     ) {
         LazyColumn(
             modifier = Modifier
@@ -129,17 +150,14 @@ fun PerfilScreen(
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        // username pequeño (textColor=widget_text_secondary #757575)
-                        val username = currentUser?.email?.substringBefore("@") ?: "Usuario"
                         Text(
-                            text = username,
+                            text = currentUser?.email?.substringBefore("@") ?: "Usuario",
                             color = ParticleSecondary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal
                         )
-                        // "Account" — título grande bold, widget_text_headline=#000000
                         Text(
-                            text = "Cuenta",
+                            text = nombreCompleto,
                             color = Color(0xFF000000),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
@@ -149,7 +167,6 @@ fun PerfilScreen(
                 }
             }
 
-            // ─── Info Card dismissable (Particle: "Control Your Preferences") ───
             item {
                 AnimatedVisibility(
                     visible = showInfoCard,
@@ -196,11 +213,10 @@ fun PerfilScreen(
                 }
             }
 
-            // ─── Estado: no autenticado ────────────────────────────
+            //Estado: no autenticado
             if (currentUser == null) {
                 item { Spacer(modifier = Modifier.height(16.dp)) }
                 item {
-                    // Menu card blanca redondeada con opciones (estilo Particle menu items)
                     Column(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
@@ -209,7 +225,7 @@ fun PerfilScreen(
                             .border(1.dp, Color(0xFFE5E5EA), RoundedCornerShape(14.dp))
                     ) {
                         ParticleMenuItem(
-                            icon = Icons.Outlined.Login,
+                            icon = Icons.AutoMirrored.Outlined.Login,
                             iconTint = ParticleBlue,
                             label = "Iniciar Sesión",
                             onClick = onNavigateToLogin
@@ -217,7 +233,6 @@ fun PerfilScreen(
                     }
                 }
             } else {
-                // ─── Menu Items card (Particle: "Content Preferences" + "Edit Profile") ─
                 item { Spacer(modifier = Modifier.height(16.dp)) }
                 item {
                     Column(
@@ -232,9 +247,10 @@ fun PerfilScreen(
                             iconTint = ParticleBlue,
                             label = "Preferencias de contenido",
                             showChevron = true,
-                            onClick = {}
+                            onClick = {
+                                navController.navigate("preferencias")
+                            }
                         )
-                        // Divider fino entre items (Particle usa línea gris muy sutil)
                         Box(
                             modifier = Modifier
                                 .padding(start = 52.dp)
@@ -247,7 +263,9 @@ fun PerfilScreen(
                             iconTint = ParticleBlue,
                             label = "Editar Perfil",
                             showChevron = false,
-                            onClick = {}
+                            onClick = {
+                                navController.navigate("editPerfil")
+                            }
                         )
                         Box(
                             modifier = Modifier
@@ -258,7 +276,7 @@ fun PerfilScreen(
                         )
                         // Cerrar sesión — rojo
                         ParticleMenuItem(
-                            icon = Icons.Outlined.Logout,
+                            icon = Icons.AutoMirrored.Outlined.Logout,
                             iconTint = Color(0xFFDC2626),
                             label = "Cerrar Sesión",
                             labelColor = Color(0xFFDC2626),
@@ -271,7 +289,7 @@ fun PerfilScreen(
                     }
                 }
 
-                // ─── Favoritos ─────────────────────────────────────────
+                // Favoritos
                 item { Spacer(modifier = Modifier.height(28.dp)) }
                 item {
                     Row(
@@ -317,8 +335,6 @@ fun PerfilScreen(
             }
         }
 
-        // ─── Large CTA pill morado (Particle: "Learn More") ──────────────────
-        // Solo se muestra si NO está autenticado
         if (currentUser == null) {
             Box(
                 modifier = Modifier
@@ -342,11 +358,6 @@ fun PerfilScreen(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────
-// Componente reutilizable: MenuItem estilo Particle News
-// icon 20dp azul | label peso 1 | chevron opcional
-// ─────────────────────────────────────────────────────
 @Composable
 private fun ParticleMenuItem(
     icon: ImageVector,

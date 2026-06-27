@@ -53,16 +53,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-// imports media3 removed
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
-import dev.openhub.app.R
 import dev.openhub.app.ui.EventoViewModel
 import dev.openhub.app.ui.theme.WhiteBackground
 import dev.openhub.app.ui.theme.LiquidGlassStrongShadow
@@ -77,6 +73,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Detalle : Screen("detalle", "Detalle", null)
     object Splash : Screen("splash", "Splash", null)
     object Perfil : Screen("perfil", "Perfil", null)
+    object EditPerfil : Screen("editPerfil", "Editar Perfil", null)
+    object Preferencias : Screen("preferencias", "Preferencias", null)
 }
 
 val bottomNavItems = listOf(
@@ -103,11 +101,15 @@ fun MainScreen(viewModel: EventoViewModel, onNavigateToLogin: () -> Unit) {
             containerColor = Color.Transparent,
             bottomBar = {
                 AnimatedVisibility(
-                    visible = currentRoute != Screen.Detalle.route && currentRoute != Screen.Splash.route && currentRoute != Screen.Perfil.route,
+                    visible = currentRoute != Screen.Detalle.route &&
+                            currentRoute != Screen.Splash.route &&
+                            currentRoute != Screen.Perfil.route &&
+                            currentRoute != Screen.EditPerfil.route &&
+                            currentRoute != Screen.Preferencias.route,
                     enter = fadeIn(animationSpec = tween(250)) +
                             slideInVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow), initialOffsetY = { it }),
                     exit = fadeOut(animationSpec = tween(250)) +
-                           slideOutVertically(animationSpec = tween(250), targetOffsetY = { it })
+                            slideOutVertically(animationSpec = tween(250), targetOffsetY = { it })
                 ) {
                     Box(modifier = Modifier.navigationBarsPadding()) {
                         GlassBottomNavigation(navController = navController, currentRoute = currentRoute, hazeState = hazeState)
@@ -130,58 +132,64 @@ fun MainScreen(viewModel: EventoViewModel, onNavigateToLogin: () -> Unit) {
                         )
                     )
                 )
-                
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     NavHost(
-                    navController = navController,
-                    startDestination = Screen.Splash.route,
-                    enterTransition = {
-                        fadeIn(animationSpec = tween(300))
-                    },
-                    exitTransition = {
-                        fadeOut(animationSpec = tween(300))
-                    },
-                    popEnterTransition = {
-                        fadeIn(animationSpec = tween(300))
-                    },
-                    popExitTransition = {
-                        fadeOut(animationSpec = tween(300))
-                    },
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    composable(Screen.Splash.route) {
-                        SplashScreen(navController)
-                    }
-                    composable(Screen.Feed.route) {
-                        FeedScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
-                    }
-                    composable(Screen.Explorar.route) {
-                        ExplorarScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
-                    }
-                    composable(Screen.Descifra.route) {
-                        DescifraScreen(
-                            viewModel = viewModel,
-                            navController = navController,
-                            sharedTransitionScope = this@SharedTransitionLayout,
-                            animatedVisibilityScope = this,
-                            innerPadding = innerPadding
-                        )
-                    }
-                    composable(Screen.Historial.route) {
-                        HistorialScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
-                    }
-                    composable(Screen.Buscar.route) {
-                        BuscarScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
-                    }
-                    composable(Screen.Detalle.route) {
-                        DetailScreen(viewModel, navController, this@SharedTransitionLayout, this)
-                    }
-                    composable(Screen.Perfil.route) {
-                        PerfilScreen(viewModel, navController, onNavigateToLogin, this@SharedTransitionLayout, this)
+                        navController = navController,
+                        startDestination = Screen.Splash.route,
+                        enterTransition = {
+                            fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            fadeOut(animationSpec = tween(300))
+                        },
+                        popEnterTransition = {
+                            fadeIn(animationSpec = tween(300))
+                        },
+                        popExitTransition = {
+                            fadeOut(animationSpec = tween(300))
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        composable(Screen.Splash.route) {
+                            SplashScreen(navController)
+                        }
+                        composable(Screen.Feed.route) {
+                            FeedScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
+                        }
+                        composable(Screen.Explorar.route) {
+                            ExplorarScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
+                        }
+                        composable(Screen.Descifra.route) {
+                            DescifraScreen(
+                                viewModel = viewModel,
+                                navController = navController,
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this,
+                                innerPadding = innerPadding
+                            )
+                        }
+                        composable(Screen.Historial.route) {
+                            HistorialScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
+                        }
+                        composable(Screen.Buscar.route) {
+                            BuscarScreen(viewModel, navController, this@SharedTransitionLayout, this, innerPadding)
+                        }
+                        composable(Screen.Detalle.route) {
+                            DetailScreen(viewModel, navController, this@SharedTransitionLayout, this)
+                        }
+                        composable(Screen.Perfil.route) {
+                            PerfilScreen(viewModel, navController, onNavigateToLogin, this@SharedTransitionLayout, this)
+                        }
+                        composable(Screen.EditPerfil.route) {
+                            EditPerfilScreen(navController)
+                        }
+                        composable(Screen.Preferencias.route) {
+                            PreferenciasScreen(navController)
+                        }
                     }
                 }
             }
-        }
         }
     }
 }
